@@ -1,182 +1,79 @@
-import streamlit as st
-import pandas as pd
 import matplotlib.pyplot as plt
-
+import pandas as pd
+import streamlit as st
 
 # Título da aplicação
 st.title("Visualizador de Planilhas Excel e Análise Financeira")
 
-
 # Carregar um arquivo Excel
 uploaded_file = st.file_uploader("Escolha um arquivo Excel", type=["xlsx", "xls"])
 
-
 if uploaded_file is not None:
-   # Ler todas as planilhas do arquivo
-   sheets = pd.read_excel(uploaded_file, sheet_name=None)
+    # Ler todas as planilhas do arquivo
+    sheets = pd.read_excel(uploaded_file, sheet_name=None)
 
+    # Exibir os nomes das planilhas
+    sheet_names = sheets.keys()
+    selected_sheet = st.selectbox("Selecione a planilha", sheet_names)
 
-   # Exibir os nomes das planilhas
-   sheet_names = sheets.keys()
-   selected_sheet = st.selectbox("Selecione a planilha", sheet_names)
+    # Exibir os dados da planilha selecionada
+    df = sheets[selected_sheet]
+    st.subheader(f"Dados da Planilha: {selected_sheet}")
+    st.dataframe(df)  # Exibe a tabela em um formato interativo
 
+    # Supondo que as medições estejam nas colunas 'MEDIÇÃO 1' até 'MEDIÇÃO 12'
+    medicoes_disponiveis = [col for col in df.columns if 'MEDIÇÃO' in col]
+    medicao_escolhida = st.selectbox("Escolha uma Medição", medicoes_disponiveis)
 
-   # Exibir os dados da planilha selecionada
-   df = sheets[selected_sheet]
-   st.subheader(f"Dados da Planilha: {selected_sheet}")
-   st.dataframe(df)  # Exibe a tabela em um formato interativo
+    # Definindo os dados das tabelas com as 12 linhas
+    etapas = [
+        "SERVIÇOS TÉCNICOS PROFISSIONAIS",
+        "MOBILIZAÇÃO, DESMOBILIZAÇÃO E FRETES PARA INSUMOS POSTO JAZIDA",
+        "CANTEIRO DE OBRAS",
+        "ADMINISTRAÇÃO LOCAL DA OBRA",
+        "GRUPO 1",
+        "GRUPO 2",
+        "GRUPO 3",
+        "GRUPO 4",
+        "GRUPO 5",
+        "ALMOXARIFADO",
+        "INSTALAÇÕES ELÉTRICAS (SDAI, SPDA, AUTOMAÇÃO E ALIMENTAÇÃO DAS BOMBAS)",
+        "SERVIÇOS FINAIS"
+    ]
 
+    # Criar o DataFrame da Tabela 1 com 2 colunas
+    tabela_primeira = pd.DataFrame({
+        "Etapas": etapas,
+        "Total Por Etapa (R$)": [None] * len(etapas),
+        "%": [None] * len(etapas)
+    })
 
-   # Supondo que as medições estejam nas colunas 'MEDIÇÃO 1' até 'MEDIÇÃO 12'
-   medicoes_disponiveis = [col for col in df.columns if 'MEDIÇÃO' in col]
-   medicao_escolhida = st.selectbox("Escolha uma Medição", medicoes_disponiveis)
+    # Função para gerar as tabelas
+    def gerar_tabelas(df, medicao):
+        tabelas = [tabela_primeira]
+        for i in range(1, 2):
+            tabela = df[['Unnamed: 1', medicao]].head(10)  # Ajuste conforme necessário
+            tabelas.append(tabela)
+        return tabelas
 
+    # Função para gerar gráfico com base na medição escolhida
+    def gerar_grafico(df, medicao):
+        plt.figure(figsize=(10, 5))
+        plt.plot(df['Unnamed: 1'], df[medicao], marker='o', color='b')
+        plt.title(f'Gráfico da {medicao}')
+        plt.xlabel('Unnamed: 1')
+        plt.ylabel(medicao)
+        st.pyplot(plt)
 
-   # Definindo os dados das tabelas com as 12 linhas
-   etapas = [
-       "SERVIÇOS TÉCNICOS PROFISSIONAIS",
-       "MOBILIZAÇÃO, DESMOBILIZAÇÃO E FRETES PARA INSUMOS POSTO JAZIDA",
-       "CANTEIRO DE OBRAS",
-       "ADMINISTRAÇÃO LOCAL DA OBRA",
-       "GRUPO 1",
-       "GRUPO 2",
-       "GRUPO 3",
-       "GRUPO 4",
-       "GRUPO 5",
-       "ALMOXARIFADO",
-       "INSTALAÇÕES ELÉTRICAS (SDAI, SPDA, AUTOMAÇÃO E ALIMENTAÇÃO DAS BOMBAS)",
-       "SERVIÇOS FINAIS"
-   ]
+    # Exibir as tabelas e o gráfico ao clicar nos botões
+    if st.button("Gerar Tabelas"):
+        tabelas = gerar_tabelas(df, medicao_escolhida)
+        for idx, tabela in enumerate(tabelas, start=1):
+            st.write(f"Tabela {idx}")
+            st.write(tabela)
 
-
-   # Criar o DataFrame da Tabela 1 com 2 colunas
-   tabela_primeira = pd.DataFrame({
-       "Etapas": etapas,
-       "Total Por Etapa (R$)": [None] * len(etapas),  # Preencher com valores reais conforme necessário
-       "%": [None] * len(etapas)  # Preencher com valores reais conforme necessário
-   })
-
-
-   # Criar o DataFrame da Tabela 2 com 4 colunas
-   tabela_segunda = pd.DataFrame({
-       "Etapas": etapas,
-       "Total Por Etapa (R$)": [None] * len(etapas),
-       "PREVISTO R$": [None] * len(etapas),
-       "PREVISTO %": [None] * len(etapas),
-       "REALIZADO R$": [None] * len(etapas),
-       "REALIZADO %": [None] * len(etapas),
-       "DESVIO (%)": [None] * len(etapas)
-   })
-
-
-   # Criar o DataFrame da Tabela 3 com 8 colunas
-   tabela_terceira = pd.DataFrame({
-       "Etapas": etapas,
-       "DATA INICIAL": [None] * len(etapas),
-       "DATA FINAL": [None] * len(etapas),
-       "PREVISTO R$": [None] * len(etapas),
-       "PREVISTO %": [None] * len(etapas),
-       "REALIZADO R$": [None] * len(etapas),
-       "REALIZADO %": [None] * len(etapas),
-       "DESVIO R$": [None] * len(etapas),
-       "DESVIO %": [None] * len(etapas)
-   })
-
-
-   # Criar o DataFrame da Tabela 4 com 5 colunas
-   tabela_quarta = pd.DataFrame({
-       "Etapas": etapas,
-       "CONTRATO": [None] * len(etapas),
-       "REALIZADO R$": [None] * len(etapas),
-       "REALIZADO %": [None] * len(etapas),
-       "SALDO CONTRATUAL R$": [None] * len(etapas),
-       "SALDO CONTRATUAL %": [None] * len(etapas)
-   })
-
-
-   # Criar o DataFrame da Tabela 5 com 7 colunas
-   tabela_quinta = pd.DataFrame({
-       "Etapas": etapas,
-       "CONTRATO": [None] * len(etapas),
-       "PREVISTO R$": [None] * len(etapas),
-       "PREVISTO %": [None] * len(etapas),
-       "REALIZADO R$": [None] * len(etapas),
-       "REALIZADO %": [None] * len(etapas),
-       "DESVIO R$": [None] * len(etapas),
-       "DESVIO %": [None] * len(etapas)
-   })
-
-
-   # Criar o DataFrame da Tabela 6 com 6 colunas
-   tabela_sexta = pd.DataFrame({
-       "Etapas": etapas,
-       "MEDIÇÃO": [None] * len(etapas),
-       "VALOR PLANEJADO": [None] * len(etapas),
-       "VALOR AGREGADO": [None] * len(etapas),
-       "VARIAÇÃO DE PRAZO (VPR)": [None] * len(etapas),
-       "IDP MÊS (VA/VP)": [None] * len(etapas),
-       "IDP GLOBAL": [None] * len(etapas)
-   })
-
-
-
-
-   # Função para gerar 6 tabelas com base na medição escolhida
-   def gerar_tabelas(df, medicao):
-       tabelas = []
-       # Adiciona a primeira tabela com as 12 etapas
-       tabelas.append(tabela_primeira)
-
-
-       # Adiciona a segunda tabela com 4 colunas
-       tabelas.append(tabela_segunda)
-
-
-       # Adiciona a terceira tabela com 8 colunas
-       tabelas.append(tabela_terceira)
-
-
-       # Adiciona a quarta tabela com 5 colunas
-       tabelas.append(tabela_quarta)
-
-
-       # Adiciona a quinta tabela com 7 colunas
-       tabelas.append(tabela_quinta)
-
-
-       # Adiciona a sexta tabela com 6 colunas
-       tabelas.append(tabela_sexta)
-
-
-       # Adiciona outras 1 tabela com base na medição escolhida
-       for i in range(1, 2):
-           tabela = df[['Unnamed: 1', medicao]].head(10)  # Ajuste conforme necessário
-           tabelas.append(tabela)
-       return tabelas
-
-
-
-
-   # Função para gerar gráfico com base na medição escolhida
-   def gerar_grafico(df, medicao):
-       plt.figure(figsize=(10, 5))
-       plt.plot(df['Unnamed: 1'], df[medicao], marker='o', color='b')
-       plt.title(f'Gráfico da {medicao}')
-       plt.xlabel('Unnamed: 1')
-       plt.ylabel(medicao)
-       st.pyplot(plt)
-
-
-   # Exibir as tabelas e o gráfico ao clicar no botão
-   if st.button("Gerar Tabelas"):
-       tabelas = gerar_tabelas(df, medicao_escolhida)
-
-
-       for idx, tabela in enumerate(tabelas, start=1):
-           st.write(f"Tabela {idx}")
-           st.write(tabela)
-
-
+    if st.button("Gerar Gráfico"):
+        gerar_grafico(df, medicao_escolhida)
    # Exibir gráfico
    if st.button("Gerar Gráfico"):
        gerar_grafico(df, medicao_escolhida)
