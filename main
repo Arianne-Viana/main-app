@@ -31,19 +31,29 @@ def gerar_grafico_medicoes():
         st.write("Selecione uma obra para visualizar as medições:")
         obra_selecionada = st.selectbox("Obras", df['Nome'].unique())
 
+        # Seleciona a obra escolhida e acessa a coluna 'Medições'
         obra_df = df[df['Nome'] == obra_selecionada]
         medicoes = obra_df['Medições'].values[0]
 
-        plt.figure()
-        plt.plot(range(1, len(str(medicoes))), [int(i) for i in str(medicoes)])
-        plt.title(f'Medições da Obra: {obra_selecionada}')
-        plt.xlabel('Mês')
-        plt.ylabel('Valor da Medição')
-        st.pyplot(plt)
+        
+        if isinstance(medicoes, str):
+            medicoes = [float(x) for x in medicoes.split(',')]
+
+        
+        if isinstance(medicoes, list) and len(medicoes) > 0:
+            plt.figure()
+            plt.plot(range(1, len(medicoes) + 1), medicoes)  # Corrige o tamanho do eixo X
+            plt.title(f'Medições da Obra: {obra_selecionada}')
+            plt.xlabel('Mês')
+            plt.ylabel('Valor da Medição')
+            st.pyplot(plt)
+        else:
+            st.write("Medições inválidas ou não disponíveis para esta obra.")
     except FileNotFoundError:
         st.write("Nenhuma obra cadastrada.")
     except KeyError:
         st.write("Não há medições para esta obra.")
+
 
 # Configuração inicial da página
 if 'pagina' not in st.session_state:
