@@ -2,16 +2,16 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Função para salvar os dados da obra em um arquivo Excel
+# Função para salvar os dados da obra em um arquivo Excel - nao ta salvando xlsx 
 def salvar_obra(nome, contrato, itens, medicoes, os, previsoes, contratante, contratada):
     try:
         df = pd.read_excel('obras.xlsx')
     except FileNotFoundError:
         df = pd.DataFrame(
-            columns=['Nome', 'Contrato', 'Itens', 'Medições', 'OS', 'Previsões', 'Contratante', 'Contratada'])
+            columns=['Descrição', 'Contrato', 'Itens', 'Medições', 'OS', 'Previsões', 'Contratante', 'Contratada'])
 
     nova_obra = pd.DataFrame([[nome, contrato, itens, medicoes, os, previsoes, contratante, contratada]],
-                             columns=['Nome', 'Contrato', 'Itens', 'Medições', 'OS', 'Previsões', 'Contratante',
+                             columns=['Descrição', 'Contrato', 'Itens', 'Medições', 'OS', 'Previsões', 'Contratante',
                                       'Contratada'])
     df = pd.concat([df, nova_obra], ignore_index=True)
     df.to_excel('obras.xlsx', index=False)
@@ -24,6 +24,16 @@ def mostrar_obras():
     except FileNotFoundError:
         st.write("Nenhuma obra cadastrada.")
 
+# Função para excluir uma obra pelo nome
+def excluir_obra(nome):
+    try:
+        df = pd.read_excel('obras.xlsx')
+        df = df[df['Nome'] != nome]
+        df.to_excel('obras.xlsx', index=False)
+        st.success(f"Obra '{nome}' excluída com sucesso!")
+    except FileNotFoundError:
+        st.write("Nenhuma obra cadastrada para excluir.")
+
 # Função para mostrar gráficos das medições
 def gerar_grafico_medicoes():
     try:
@@ -35,11 +45,9 @@ def gerar_grafico_medicoes():
         obra_df = df[df['Nome'] == obra_selecionada]
         medicoes = obra_df['Medições'].values[0]
 
-        
         if isinstance(medicoes, str):
             medicoes = [float(x) for x in medicoes.split(',')]
 
-        
         if isinstance(medicoes, list) and len(medicoes) > 0:
             plt.figure()
             plt.plot(range(1, len(medicoes) + 1), medicoes)  # Corrige o tamanho do eixo X
@@ -53,7 +61,6 @@ def gerar_grafico_medicoes():
         st.write("Nenhuma obra cadastrada.")
     except KeyError:
         st.write("Não há medições para esta obra.")
-
 
 # Configuração inicial da página
 if 'pagina' not in st.session_state:
@@ -97,7 +104,16 @@ else:
     # Se o usuário escolher "Atualização de Obras" no menu lateral
     elif menu == "Atualização de Obras":
         st.header("Atualização de Obras")
+
+        # Exibe as obras cadastradas
         mostrar_obras()
+
+        # Excluir uma obra
+        obras = pd.read_excel('obras.xlsx')['Nome'].unique()
+        obra_excluir = st.selectbox("Selecione uma obra para excluir", obras)
+
+        if st.button("Excluir Obra"):
+            excluir_obra(obra_excluir)
 
     # Se o usuário escolher "Visualizar Gráficos"
     elif menu == "Visualizar Gráficos":
