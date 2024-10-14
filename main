@@ -1,79 +1,99 @@
-import matplotlib.pyplot as plt
-import pandas as pd
 import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
 
-# Título da aplicação
-st.title("Visualizador de Planilhas Excel e Análise Financeira")
+# Função para salvar os dados da obra em um arquivo Excel
+def salvar_obra(nome, contrato, itens, medicoes, os, previsoes, contratante, contratada):
+    try:
+        df = pd.read_excel('obras.xlsx')
+    except FileNotFoundError:
+        df = pd.DataFrame(
+            columns=['Nome', 'Contrato', 'Itens', 'Medições', 'OS', 'Previsões', 'Contratante', 'Contratada'])
 
-# Carregar um arquivo Excel
-uploaded_file = st.file_uploader("Escolha um arquivo Excel", type=["xlsx", "xls"])
+    nova_obra = pd.DataFrame([[nome, contrato, itens, medicoes, os, previsoes, contratante, contratada]],
+                             columns=['Nome', 'Contrato', 'Itens', 'Medições', 'OS', 'Previsões', 'Contratante',
+                                      'Contratada'])
+    df = pd.concat([df, nova_obra], ignore_index=True)
+    df.to_excel('obras.xlsx', index=False)
 
-if uploaded_file is not None:
-    # Ler todas as planilhas do arquivo
-    sheets = pd.read_excel(uploaded_file, sheet_name=None)
+# Função para exibir os dados de obras
+def mostrar_obras():
+    try:
+        df = pd.read_excel('obras.xlsx')
+        st.write(df)
+    except FileNotFoundError:
+        st.write("Nenhuma obra cadastrada.")
 
-    # Exibir os nomes das planilhas
-    sheet_names = sheets.keys()
-    selected_sheet = st.selectbox("Selecione a planilha", sheet_names)
+# Função para mostrar gráficos das medições
+def gerar_grafico_medicoes():
+    try:
+        df = pd.read_excel('obras.xlsx')
+        st.write("Selecione uma obra para visualizar as medições:")
+        obra_selecionada = st.selectbox("Obras", df['Nome'].unique())
 
-    # Exibir os dados da planilha selecionada
-    df = sheets[selected_sheet]
-    st.subheader(f"Dados da Planilha: {selected_sheet}")
-    st.dataframe(df)  # Exibe a tabela em um formato interativo
+        obra_df = df[df['Nome'] == obra_selecionada]
+        medicoes = obra_df['Medições'].values[0]
 
-    # Supondo que as medições estejam nas colunas 'MEDIÇÃO 1' até 'MEDIÇÃO 12'
-    medicoes_disponiveis = [col for col in df.columns if 'MEDIÇÃO' in col]
-    medicao_escolhida = st.selectbox("Escolha uma Medição", medicoes_disponiveis)
-
-    # Definindo os dados das tabelas com as 12 linhas
-    etapas = [
-        "SERVIÇOS TÉCNICOS PROFISSIONAIS",
-        "MOBILIZAÇÃO, DESMOBILIZAÇÃO E FRETES PARA INSUMOS POSTO JAZIDA",
-        "CANTEIRO DE OBRAS",
-        "ADMINISTRAÇÃO LOCAL DA OBRA",
-        "GRUPO 1",
-        "GRUPO 2",
-        "GRUPO 3",
-        "GRUPO 4",
-        "GRUPO 5",
-        "ALMOXARIFADO",
-        "INSTALAÇÕES ELÉTRICAS (SDAI, SPDA, AUTOMAÇÃO E ALIMENTAÇÃO DAS BOMBAS)",
-        "SERVIÇOS FINAIS"
-    ]
-
-    # Criar o DataFrame da Tabela 1 com 2 colunas
-    tabela_primeira = pd.DataFrame({
-        "Etapas": etapas,
-        "Total Por Etapa (R$)": [None] * len(etapas),
-        "%": [None] * len(etapas)
-    })
-
-    # Função para gerar as tabelas
-    def gerar_tabelas(df, medicao):
-        tabelas = [tabela_primeira]
-        for i in range(1, 2):
-            tabela = df[['Unnamed: 1', medicao]].head(10)  # Ajuste conforme necessário
-            tabelas.append(tabela)
-        return tabelas
-
-    # Função para gerar gráfico com base na medição escolhida
-    def gerar_grafico(df, medicao):
-        plt.figure(figsize=(10, 5))
-        plt.plot(df['Unnamed: 1'], df[medicao], marker='o', color='b')
-        plt.title(f'Gráfico da {medicao}')
-        plt.xlabel('Unnamed: 1')
-        plt.ylabel(medicao)
+        plt.figure()
+        plt.plot(range(1, len(str(medicoes))), [int(i) for i in str(medicoes)])
+        plt.title(f'Medições da Obra: {obra_selecionada}')
+        plt.xlabel('Mês')
+        plt.ylabel('Valor da Medição')
         st.pyplot(plt)
+    except FileNotFoundError:
+        st.write("Nenhuma obra cadastrada.")
+    except KeyError:
+        st.write("Não há medições para esta obra.")
 
-    # Exibir as tabelas e o gráfico ao clicar nos botões
-    if st.button("Gerar Tabelas"):
-        tabelas = gerar_tabelas(df, medicao_escolhida)
-        for idx, tabela in enumerate(tabelas, start=1):
-            st.write(f"Tabela {idx}")
-            st.write(tabela)
+# Configuração inicial da página
+if 'pagina' not in st.session_state:
+    st.session_state.pagina = 'inicio'
 
-    if st.button("Gerar Gráfico"):
-        gerar_grafico(df, medicao_escolhida)
-   # Exibir gráfico
-   if st.button("Gerar Gráfico"):
-       gerar_grafico(df, medicao_escolhida)
+# Página inicial com dois botões (Cadastro e Atualização de Obras)
+if st.session_state.pagina == 'inicio':
+    st.title("Sistema de Cadastro e Atualização de Obras")
+    st.write("Escolha uma opção abaixo para prosseguir:")
+
+    # Botão de cadastro de obras
+    if st.button("Cadastro de Obras"):
+        st.session_state.pagina = 'cadastro'
+
+    # Botão de atualização de obras
+    if st.button("Atualização de Obras"):
+        st.session_state.pagina = 'atualizacao'
+
+# Exibe o menu lateral e as opções quando o usuário entra em uma das páginas
+else:
+    menu = st.sidebar.selectbox("Menu", ["Cadastro de Obras", "Atualização de Obras", "Visualizar Gráficos", "Voltar"])
+
+    # Se o usuário escolher "Cadastro de Obras" no menu lateral
+    if menu == "Cadastro de Obras":
+        st.header("Cadastro de Obras")
+
+        # Campos do formulário de cadastro
+        nome = st.text_input("Nome da Obra")
+        contrato = st.text_input("Número de Contrato")
+        itens = st.number_input("Quantidade de Itens", min_value=1)
+        medicoes = st.number_input("Quantidade de Medições", min_value=1)
+        os = st.text_input("Número da OS")
+        previsoes = st.text_input("Medições (R$)")
+        contratante = st.text_input("Contratante")
+        contratada = st.text_input("Contratada")
+
+        if st.button("Salvar Obra"):
+            salvar_obra(nome, contrato, itens, medicoes, os, previsoes, contratante, contratada)
+            st.success(f"Obra '{nome}' salva com sucesso!")
+
+    # Se o usuário escolher "Atualização de Obras" no menu lateral
+    elif menu == "Atualização de Obras":
+        st.header("Atualização de Obras")
+        mostrar_obras()
+
+    # Se o usuário escolher "Visualizar Gráficos"
+    elif menu == "Visualizar Gráficos":
+        st.header("Gráficos de Medições")
+        gerar_grafico_medicoes()
+
+    # Opção para voltar à página inicial
+    elif menu == "Voltar":
+        st.session_state.pagina = 'inicio'
